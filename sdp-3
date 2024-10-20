@@ -1,0 +1,93 @@
+public interface FareStrategy {
+    double calculateFare(double distanceKm, int durationMin);
+}
+
+
+public class RegularFareStrategy implements FareStrategy {
+    @Override
+    public double calculateFare(double distanceKm, int durationMin) {
+        return distanceKm * 1.00 + durationMin * 0.25;
+    }
+}
+
+public class PremiumFareStrategy implements FareStrategy {
+    @Override
+    public double calculateFare(double distanceKm, int durationMin) {
+        return distanceKm * 1.50 + durationMin * 0.40;
+    }
+}
+
+public class DiscountFareStrategy implements FareStrategy {
+    @Override
+    public double calculateFare(double distanceKm, int durationMin) {
+        return distanceKm * 0.75 + durationMin * 0.20;
+    }
+}
+
+
+public class SurgeFareStrategy implements FareStrategy {
+    @Override
+    public double calculateFare(double distanceKm, int durationMin) {
+        return distanceKm * 2.00 + durationMin * 0.50;
+    }
+}
+
+public class RideContext {
+    private FareStrategy strategy;
+    private final double minFare = 5.00;
+
+    public RideContext(FareStrategy strategy) {
+        this.strategy = strategy;
+    }
+
+    public void setStrategy(FareStrategy strategy) {
+        this.strategy = strategy;
+    }
+
+    public double calculateFare(double distanceKm, int durationMin, boolean peakHours) {
+        if (distanceKm < 0 || durationMin < 0) {
+            throw new IllegalArgumentException("Distance and duration must be non-negative.");
+        }
+
+        // Применение стратегии пикового спроса при необходимости
+        if (peakHours) {
+            setStrategy(new SurgeFareStrategy());
+        }
+
+        double fare = strategy.calculateFare(distanceKm, durationMin);
+
+        // Применение минимальной стоимости поездки
+        if (fare < minFare) {
+            fare = minFare;
+        }
+
+        return fare;
+    }
+}
+
+public class FareCalculatorTest {
+
+    public static void main(String[] args) {
+        // Обычный тариф: 10 км, 20 минут
+        RideContext ride = new RideContext(new RegularFareStrategy());
+        System.out.printf("Regular fare (10 km, 20 min): $%.2f%n", ride.calculateFare(10, 20, false));
+
+        // Пиковый тариф: 5 км, 10 минут (пиковое время)
+        System.out.printf("Surge fare (5 km, 10 min, peak hours): $%.2f%n", ride.calculateFare(5, 10, true));
+
+        // Премиум тариф: 15 км, 30 минут
+        ride.setStrategy(new PremiumFareStrategy());
+        System.out.printf("Premium fare (15 km, 30 min): $%.2f%n", ride.calculateFare(15, 30, false));
+
+        // Тариф со скидкой: 3 км, 5 минут (применение минимальной стоимости)
+        ride.setStrategy(new DiscountFareStrategy());
+        System.out.printf("Discount fare (3 km, 5 min): $%.2f%n", ride.calculateFare(3, 5, false));
+
+        // Обработка неверных данных
+        try {
+            ride.calculateFare(-5, 10, false);  // Негативная дистанция
+        } catch (IllegalArgumentException e) {
+            System.out.println("Error: " + e.getMessage());
+        }
+    }
+}
